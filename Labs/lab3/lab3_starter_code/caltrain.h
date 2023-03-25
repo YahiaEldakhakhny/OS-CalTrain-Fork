@@ -1,3 +1,8 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <time.h>
+#include <unistd.h>
 #include <pthread.h>
 
 #define LOCK_AQUIRED 1
@@ -5,8 +10,8 @@
 #define TRAIN_WAITING 1
 #define NO_TRAIN_WAITING 0
 
-struct station {
-	int is_train;
+struct station{
+	int is_train; // Determines wether a train is in the station or not
 	int train_available_seats;
 	int waiting_passengers;
 	int lock;
