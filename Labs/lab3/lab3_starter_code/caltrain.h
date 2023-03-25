@@ -11,10 +11,11 @@
 #define NO_TRAIN_WAITING 0
 
 struct station{
-	int is_train; // Determines wether a train is in the station or not
 	int train_available_seats;
 	int waiting_passengers;
-	int lock;
+	pthread_mutex_t seats_mutex;
+	pthread_cond_t train_arrived_cond;
+	pthread_cond_t train_leave_cond;
 };
 
 void station_init(struct station *station);
