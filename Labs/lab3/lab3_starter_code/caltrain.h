@@ -5,17 +5,13 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define LOCK_AQUIRED 1
-#define LOCK_RELEASED 0
-#define TRAIN_WAITING 1
-#define NO_TRAIN_WAITING 0
-
 struct station{
 	int train_available_seats;
 	int waiting_passengers;
+	int boarded_passengers; // number of passengers who have boarded the train
 	pthread_mutex_t seats_mutex;
 	pthread_cond_t train_arrived_cond;
-	pthread_cond_t train_leave_cond;
+	pthread_cond_t passenger_aboard_cond;
 };
 
 void station_init(struct station *station);

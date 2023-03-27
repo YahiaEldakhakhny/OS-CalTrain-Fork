@@ -13,17 +13,18 @@ https://github.com/YahiaEldakhakhny/OS-CalTrain-Fork/tree/master/Labs/lab3
 void
 station_init(struct station *station)
 {
-	// Allocate space
-	station = malloc(sizeof(struct station));
 
 	// Initialise mutex
 	pthread_mutex_init(&(station->seats_mutex), NULL);
 
 	// Initialise condition variables
 	pthread_cond_init(&(station->train_arrived_cond), NULL);
-	pthread_cond_init(&(station->train_leave_cond), NULL);
+	pthread_cond_init(&(station->passenger_aboard_cond), NULL);
 
-	
+	// Initial values
+	station->train_available_seats = 0;	
+	station->waiting_passengers = 0;	
+	station->boarded_passengers = 0;
 }
 
 // Function called when the train arrives and has opened its doors
@@ -31,24 +32,25 @@ station_init(struct station *station)
 void
 station_load_train(struct station *station, int count)
 {
-	if(count == 0){
-		return;
-	}
 	// Enter critical section
 	pthread_mutex_lock(&(station->seats_mutex));
 	station->train_available_seats = count;
-	if(station->waiting_passengers == 0){
-		pthread_mutex_unlock(&(station->seats_mutex));
-		return;
-	}
-	// Exit critical section
 	pthread_mutex_unlock(&(station->seats_mutex));	
 	
-	// Signal that the train has entered the station
+	// Broadcast that the train has entered the station
 	pthread_cond_broadcast(&(station->train_arrived_cond));
-	// Wait for train to get full or all passengers to board
-	pthread_cond_wait(&(station->train_leave_cond), &(station->seats_mutex));
 
+	// Wait for train to get full or all passengers to board
+	pthread_mutex_lock(&(station->seats_mutex));	
+	while(station->waiting_passengers > 0 && count > station->boarded_passengers){
+		pthread_cond_wait(&(station->passenger_aboard_cond), &(station->seats_mutex));		
+	}
+	pthread_mutex_unlock(&(station->seats_mutex));
+
+	// Reset variables for next train
+	station->boarded_passengers = 0;
+	station->train_available_seats = 0;
+	
 	// Train leaves the station
 }
 
@@ -58,22 +60,24 @@ station_wait_for_train(struct station *station)
 	// Update number of waiting passengers
 	pthread_mutex_lock(&(station->seats_mutex));
 	(station->waiting_passengers)++;
-	pthread_mutex_unlock(&(station->seats_mutex));
 
 	// Wait for train to arrive	
-	pthread_cond_wait(&(station->train_arrived_cond), &(station->seats_mutex));
+	while(station->train_available_seats < 1){
+		pthread_cond_wait(&(station->train_arrived_cond), &(station->seats_mutex));		
+	}
+	
+	// If passenger has place on the train reserve a place for them
+	station->train_available_seats--;
+	pthread_mutex_unlock(&(station->seats_mutex));
 }
 
 void
 station_on_board(struct station *station)
 {
-	// Let passenger on train
+	// Let passenger aboard the train
 	pthread_mutex_lock(&(station->seats_mutex));
 	(station->waiting_passengers)--;
-	(station->train_available_seats)--;
-	if(station->waiting_passengers == 0 || station->train_available_seats == 0){
-		pthread_cond_signal(&(station->train_leave_cond));
-	}
+	(station->boarded_passengers)++;
 	pthread_mutex_unlock(&(station->seats_mutex));
-
+	pthread_cond_signal(&(station->passenger_aboard_cond));
 }
