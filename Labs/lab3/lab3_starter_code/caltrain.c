@@ -23,6 +23,7 @@ station_init(struct station *station)
 	pthread_cond_init(&(station->train_arrived_cond), NULL);
 	pthread_cond_init(&(station->train_leave_cond), NULL);
 
+	
 }
 
 // Function called when the train arrives and has opened its doors
@@ -30,14 +31,16 @@ station_init(struct station *station)
 void
 station_load_train(struct station *station, int count)
 {
-	
+	if(count == 0){
+		return;
+	}
 	// Enter critical section
 	pthread_mutex_lock(&(station->seats_mutex));
+	station->train_available_seats = count;
 	if(station->waiting_passengers == 0){
 		pthread_mutex_unlock(&(station->seats_mutex));
 		return;
 	}
-	station->train_available_seats = count;
 	// Exit critical section
 	pthread_mutex_unlock(&(station->seats_mutex));	
 	
